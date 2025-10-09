@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  display   String?
+  createdAt DateTime @default(now())
+  inventory InventoryItem[]
+  listings  Listing[]
+}
+
+model CardPrinting {
+  id           String  @id // Scryfall printing ID
+  oracleId     String
+  name         String
+  set          String
+  collectorNum String
+  rarity       String?
+  foil         Boolean?
+  // Optional convenience fields
+  imageNormal  String?
+  inventoryItems InventoryItem[]
+  listings       Listing[]
+}
+
+model InventoryItem {
+  id            String        @id @default(cuid())
+  ownerId       String
+  owner         User          @relation(fields: [ownerId], references: [id])
+  printingId    String
+  printing      CardPrinting  @relation(fields: [printingId], references: [id])
+  condition     String        // NM, LP, MP, HP, DMG
+  language      String        // EN, ES, etc.
+  quantity      Int           @default(1)
+  acquisitionAt DateTime?     
+  notes         String?
+}
+
+model Listing {
+  id            String        @id @default(cuid())
+  sellerId      String
+  seller        User          @relation(fields: [sellerId], references: [id])
+  printingId    String
+  printing      CardPrinting  @relation(fields: [printingId], references: [id])
+  priceEur      Decimal
+  qtyAvailable  Int           @default(1)
+  status        String        @default("ACTIVE")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}

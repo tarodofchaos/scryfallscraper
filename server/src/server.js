@@ -1,0 +1,93 @@
+import Database from 'better-sqlite3';
+import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { prisma } from './db/prismaClient.js';
+import cors from 'cors';
+import pinoHttp from 'pino-http';
+import { logger } from './logger.js';
+import { cards } from './routes/cards.js';
+import { inventory } from './routes/inventory.js';
+import { listings } from './routes/listings.js';
+import { users } from './routes/users.js';
+
+const app = express();
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use(pinoHttp({ logger }));
+
+// SQLite autocomplete DB
+const cardDb = new Database('./prisma/AllPrintings.sqlite', { readonly: true });
+
+app.get('/api/card-names', (req, res) => {
+	const q = (req.query.q || '').trim();
+	if (!q || q.length < 2) return res.json([]);
+	// Query for card names matching input
+	const stmt = cardDb.prepare(`SELECT DISTINCT name FROM cards WHERE name LIKE ? ORDER BY name LIMIT 20`);
+	const results = stmt.all(`%${q}%`).map(row => row.name);
+	res.json(results);
+});
+
+// Session middleware
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'devsecret',
+	resave: false,
+	saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+	done(null, user.id);
+});
+passport.deserializeUser(async (id, done) => {
+	const user = await prisma.user.findUnique({ where: { id } });
+	done(null, user);
+});
+
+passport.use(new GoogleStrategy({
+	clientID: process.env.GOOGLE_CLIENT_ID,
+	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+	callbackURL: '/auth/google/callback'
+}, async (accessToken, refreshToken, profile, done) => {
+	const email = profile.emails[0].value;
+	let user = await prisma.user.findUnique({ where: { email } });
+	if (!user) {
+		user = await prisma.user.create({ data: { email, display: profile.displayName } });
+	}
+	return done(null, user);
+}));
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', passport.authenticate('google', {
+	failureRedirect: '/login',
+	session: true
+}), (req, res) => {
+	  res.redirect('http://localhost:5173/'); // Redirect to frontend after login
+});
+
+app.get('/api/me', (req, res) => {
+	if (req.isAuthenticated()) {
+		res.json({ ok: true, user: req.user });
+	} else {
+		res.status(401).json({ ok: false });
+	}
+});
+
+app.get('/logout', (req, res) => {
+	req.logout(() => {
+		res.redirect('/');
+	});
+});
+
+app.get('/health', (_req, res) => res.json({ ok: true }));
+app.use('/cards', cards);
+app.use('/inventory', inventory);
+app.use('/listings', listings);
+app.use('/users', users);
+
+const port = process.env.PORT || 4000;
+app.listen(port, () => logger.info(`API on http://localhost:${port}`));
