@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Listings } from '../lib/api.js';
+import { Listings, Inventory } from '../lib/api.js';
 
-export default function InventoryTable({ items, userEmail }) {
+export default function InventoryTable({ items, userEmail, onItemDeleted }) {
   const { t } = useTranslation();
   const [modalRow, setModalRow] = useState(null);
   const [modalPrice, setModalPrice] = useState('');
@@ -11,6 +11,48 @@ export default function InventoryTable({ items, userEmail }) {
   const [batchQty, setBatchQty] = useState(1);
   const [multiList, setMultiList] = useState({});
   const [loading, setLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [selectedForDelete, setSelectedForDelete] = useState({});
+
+  const handleDeleteItem = async (item) => {
+    setDeleting(true);
+    try {
+      await Inventory.delete(item.id);
+      if (onItemDeleted) {
+        onItemDeleted(item.id);
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      alert('Error deleting item: ' + error.message);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setDeleting(true);
+    try {
+      const selectedItems = items.filter(item => selectedForDelete[item.id]);
+      for (const item of selectedItems) {
+        await Inventory.delete(item.id);
+      }
+      if (onItemDeleted) {
+        selectedItems.forEach(item => onItemDeleted(item.id));
+      } else {
+        window.location.reload();
+      }
+      setSelectedForDelete({});
+      setBulkDeleteConfirm(false);
+    } catch (error) {
+      alert('Error deleting items: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -44,18 +86,47 @@ export default function InventoryTable({ items, userEmail }) {
               <table className="min-w-full">
                 <thead className="bg-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Card</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Set</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={Object.keys(selectedForDelete).length === items.length && items.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const allSelected = {};
+                            items.forEach(item => allSelected[item.id] = true);
+                            setSelectedForDelete(allSelected);
+                          } else {
+                            setSelectedForDelete({});
+                          }
+                        }}
+                        className="w-4 h-4 text-mtg-blue bg-white/10 border-white/20 rounded focus:ring-mtg-blue focus:ring-2"
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.card')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.set')}</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">#</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Qty</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Cond</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Lang</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.qty')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.cond')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.lang')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-mtg-white/70 uppercase tracking-wider">{t('inventory.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {items.map(row => (
                     <tr key={row.id} className="hover:bg-white/5 transition-colors duration-200">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedForDelete[row.id]}
+                          onChange={(e) => {
+                            setSelectedForDelete({
+                              ...selectedForDelete,
+                              [row.id]: e.target.checked
+                            });
+                          }}
+                          className="w-4 h-4 text-mtg-blue bg-white/10 border-white/20 rounded focus:ring-mtg-blue focus:ring-2"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           {row.printing.imageNormal && (
@@ -104,6 +175,13 @@ export default function InventoryTable({ items, userEmail }) {
                             }}
                           >
 {t('inventory.listForSale')}
+                          </button>
+                          <button
+                            className="btn bg-red-600/20 text-red-400 hover:bg-red-600/30 text-sm px-4 py-2 border border-red-500/30"
+                            onClick={() => setDeleteConfirm(row)}
+                            disabled={deleting}
+                          >
+                            🗑️ {t('inventory.delete')}
                           </button>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -267,6 +345,137 @@ export default function InventoryTable({ items, userEmail }) {
                   <span className="text-lg">🚀</span>
                 </span>
               </button>
+            </div>
+          )}
+
+          {/* Bulk Delete Section */}
+          {Object.values(selectedForDelete).some(v => v) && (
+            <div className="bg-gradient-to-r from-red-600/10 to-red-500/10 backdrop-blur-sm rounded-2xl border border-red-500/20 p-6 mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-600/20 flex items-center justify-center">
+                  <span className="text-red-400 text-lg">🗑️</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-mtg-white">{t('inventory.bulkDelete')}</h3>
+                  <p className="text-sm text-mtg-white/70">
+                    {t('inventory.bulkDelete.selected', { count: Object.values(selectedForDelete).filter(v => v).length })}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                className="btn bg-red-600 hover:bg-red-700 text-white w-full"
+                disabled={deleting}
+                onClick={() => setBulkDeleteConfirm(true)}
+              >
+                {t('inventory.bulkDelete.confirm')}
+              </button>
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {deleteConfirm && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    {deleteConfirm.printing.imageNormal && (
+                      <img
+                        src={deleteConfirm.printing.imageNormal}
+                        alt=""
+                        className="w-16 h-20 object-cover rounded-lg shadow-lg"
+                      />
+                    )}
+                    <div>
+                      <h3 className="font-bold text-xl text-mtg-black mb-1">{deleteConfirm.printing.name}</h3>
+                      <p className="text-sm text-mtg-black/60 uppercase">{deleteConfirm.printing.set} • #{deleteConfirm.printing.collectorNum}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <span className="text-red-600 text-lg">⚠️</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-red-800">{t('inventory.deleteConfirm.title')}</h4>
+                        <p className="text-sm text-red-600">
+                          {t('inventory.deleteConfirm.message')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      className="btn bg-red-600 hover:bg-red-700 text-white flex-1"
+                      disabled={deleting}
+                      onClick={() => handleDeleteItem(deleteConfirm)}
+                    >
+                      {deleting ? t('inventory.deleteConfirm.deleting') : `🗑️ ${t('inventory.deleteConfirm.delete')}`}
+                    </button>
+                    <button
+                      className="btn bg-mtg-black/10 text-mtg-black hover:bg-mtg-black/20 flex-1"
+                      onClick={() => setDeleteConfirm(null)}
+                      disabled={deleting}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Delete Confirmation Modal */}
+          {bulkDeleteConfirm && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="text-red-600 text-2xl">🗑️</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-mtg-black mb-1">{t('inventory.bulkDelete')}</h3>
+                      <p className="text-sm text-mtg-black/60">
+                        {t('inventory.bulkDelete.selected', { count: Object.values(selectedForDelete).filter(v => v).length })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <span className="text-red-600 text-lg">⚠️</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-red-800">{t('inventory.bulkDelete.confirm')}</h4>
+                        <p className="text-sm text-red-600">
+                          {t('inventory.bulkDelete.confirmMessage', { count: Object.values(selectedForDelete).filter(v => v).length })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      className="btn bg-red-600 hover:bg-red-700 text-white flex-1"
+                      disabled={deleting}
+                      onClick={handleBulkDelete}
+                    >
+                      {deleting ? t('inventory.deleteConfirm.deleting') : `🗑️ ${t('inventory.bulkDelete.confirm')}`}
+                    </button>
+                    <button
+                      className="btn bg-mtg-black/10 text-mtg-black hover:bg-mtg-black/20 flex-1"
+                      onClick={() => setBulkDeleteConfirm(false)}
+                      disabled={deleting}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </>

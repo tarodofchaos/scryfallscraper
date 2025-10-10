@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Cards, Inventory } from '../lib/api.js';
 import PriceBadge from './PriceBadge.jsx';
 
-function CardTile({ card, userEmail }) {
+function CardTile({ card, userEmail, onAddToInventory }) {
   const { t } = useTranslation();
   const [prices, setPrices] = useState(null);
   const [binderAnimation, setBinderAnimation] = useState(false);
@@ -14,27 +14,20 @@ function CardTile({ card, userEmail }) {
     try { const p = await Cards.prices(card.id); setPrices(p.prices); } catch {}
   })(); }, [card.id]);
 
-  async function addToInventory() {
-    const printing = {
-      id: card.id,
-      oracleId: card.oracle_id,
-      name: card.name,
-      set: card.set,
-      collectorNum: String(card.collector_number),
-      rarity: card.rarity,
-      foil: (card.foil ?? false),
-      imageNormal: img
-    };
-    await Inventory.add({ ownerEmail: userEmail, printing, condition: 'NM', language: card.lang?.toUpperCase?.() || 'EN', quantity: 1 });
-      // Find inventory button position for binder animation
-      const btn = document.getElementById('inventory-btn');
-      if (btn) {
-        const rect = btn.getBoundingClientRect();
-        setBinderStyle({
-          '--binder-x': `${rect.left + rect.width / 2}px`,
-          '--binder-y': `${rect.top + rect.height / 2}px`
-        });
-      }
+  function handleAddToInventory() {
+    onAddToInventory(card);
+  }
+
+  function handleCardAdded() {
+    // Find inventory button position for binder animation
+    const btn = document.getElementById('inventory-btn');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      setBinderStyle({
+        '--binder-x': `${rect.left + rect.width / 2}px`,
+        '--binder-y': `${rect.top + rect.height / 2}px`
+      });
+    }
     setBinderAnimation(true);
     setTimeout(() => setBinderAnimation(false), 1500);
   }
@@ -84,7 +77,7 @@ function CardTile({ card, userEmail }) {
         {/* Add to Inventory Button */}
         {userEmail && (
           <button 
-            onClick={addToInventory} 
+            onClick={handleAddToInventory} 
             className="btn-primary w-full mt-4 group-hover:shadow-lg transition-all duration-300"
           >
             <span className="flex items-center justify-center gap-2">
@@ -110,6 +103,7 @@ function CardTile({ card, userEmail }) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

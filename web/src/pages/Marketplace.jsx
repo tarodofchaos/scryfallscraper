@@ -1,17 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Listings } from '../lib/api.js';
+import MyListingsTable from '../components/MyListingsTable.jsx';
 
-export default function Marketplace() {
+export default function Marketplace({ userEmail }) {
   const { t } = useTranslation();
   const [rows, setRows] = useState([]);
+  const [myListings, setMyListings] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
 
-  async function load() {
+  async function loadAll() {
     const res = await Listings.list();
     setRows(res.listings);
   }
 
-  useEffect(()=>{ load(); }, []);
+  async function loadMy() {
+    if (userEmail) {
+      const res = await Listings.my(userEmail);
+      setMyListings(res.listings);
+    }
+  }
+
+  async function load() {
+    await loadAll();
+    await loadMy();
+  }
+
+  async function handleListingDeleted(deletedId) {
+    setMyListings(myListings.filter(listing => listing.id !== deletedId));
+  }
+
+  useEffect(()=>{ load(); }, [userEmail]);
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -24,7 +43,41 @@ export default function Marketplace() {
         </p>
       </div>
 
-      {rows.length === 0 ? (
+      {/* Tab Navigation */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1 border border-white/20">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              activeTab === 'all' 
+                ? 'bg-mtg-blue text-white shadow-lg' 
+                : 'text-mtg-white/70 hover:text-mtg-white hover:bg-white/10'
+            }`}
+          >
+            All Listings ({rows.length})
+          </button>
+          {userEmail && (
+            <button
+              onClick={() => setActiveTab('my')}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                activeTab === 'my' 
+                  ? 'bg-mtg-blue text-white shadow-lg' 
+                  : 'text-mtg-white/70 hover:text-mtg-white hover:bg-white/10'
+              }`}
+            >
+              My Listings ({myListings.length})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {activeTab === 'my' && userEmail ? (
+        <MyListingsTable 
+          listings={myListings} 
+          userEmail={userEmail} 
+          onListingDeleted={handleListingDeleted}
+        />
+      ) : activeTab === 'all' && rows.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-r from-mtg-blue/20 to-mtg-gold/20 flex items-center justify-center">
             <span className="text-6xl">🏪</span>
@@ -38,7 +91,7 @@ export default function Marketplace() {
             {t('marketplace.empty.action')}
           </button>
         </div>
-      ) : (
+      ) : activeTab === 'all' ? (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-mtg-white">
@@ -114,7 +167,7 @@ export default function Marketplace() {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

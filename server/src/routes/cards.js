@@ -37,3 +37,26 @@ cards.get('/by-name/fuzzy/:name', async (req, res) => {
   try { res.json({ ok: true, data: await cardService.getByName({ fuzzy: req.params.name }) }); }
   catch (err) { res.status(404).json({ ok: false, error: err.message }); }
 });
+
+cards.get('/:id/prints', async (req, res) => {
+  try { 
+    const card = await cardService.getCardById(req.params.id);
+    // Search for all printings using oracle_id
+    const response = await fetch(`https://api.scryfall.com/cards/search?q=oracle_id:${card.oracle_id}`);
+    if (!response.ok) throw new Error(`Scryfall prints search failed: ${response.status}`);
+    const data = await response.json();
+    res.json({ ok: true, data: data.data || [] });
+  }
+  catch (err) { res.status(404).json({ ok: false, error: err.message }); }
+});
+
+cards.get('/sets/search', async (req, res) => {
+  try {
+    const schema = z.object({ q: z.string().min(1) });
+    const { q } = schema.parse(req.query);
+    const response = await fetch(`https://api.scryfall.com/sets?q=${encodeURIComponent(q)}`);
+    if (!response.ok) throw new Error(`Scryfall sets search failed: ${response.status}`);
+    const data = await response.json();
+    res.json({ ok: true, data: data.data || [] });
+  } catch (err) { res.status(400).json({ ok: false, error: err.message }); }
+});

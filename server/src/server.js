@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import sqlite3 from 'sqlite3';
 import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
@@ -18,15 +18,20 @@ app.use(express.json());
 app.use(pinoHttp({ logger }));
 
 // SQLite autocomplete DB
-const cardDb = new Database('./prisma/AllPrintings.sqlite', { readonly: true });
+const cardDb = new sqlite3.Database('./prisma/AllPrintings.sqlite', sqlite3.OPEN_READONLY);
 
 app.get('/api/card-names', (req, res) => {
 	const q = (req.query.q || '').trim();
 	if (!q || q.length < 2) return res.json([]);
 	// Query for card names matching input
-	const stmt = cardDb.prepare(`SELECT DISTINCT name FROM cards WHERE name LIKE ? ORDER BY name LIMIT 20`);
-	const results = stmt.all(`%${q}%`).map(row => row.name);
-	res.json(results);
+	cardDb.all(`SELECT DISTINCT name FROM cards WHERE name LIKE ? ORDER BY name LIMIT 20`, [`%${q}%`], (err, rows) => {
+		if (err) {
+			console.error('Database error:', err);
+			return res.status(500).json({ error: 'Database error' });
+		}
+		const results = rows.map(row => row.name);
+		res.json(results);
+	});
 });
 
 // Session middleware

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export default function SearchBar({ value, onChange, onSubmit }) {
+export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -84,7 +84,7 @@ export default function SearchBar({ value, onChange, onSubmit }) {
               onBlur={handleBlur}
               onFocus={()=>{if(suggestions.length) setShowDropdown(true);}}
               className="w-full rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-mtg-white placeholder-mtg-white/50 pl-12 pr-4 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-mtg-blue focus:border-transparent transition-all duration-300"
-              placeholder={t('search.placeholder')}
+              placeholder={placeholder || t('search.placeholder')}
               autoComplete="off"
             />
           </div>

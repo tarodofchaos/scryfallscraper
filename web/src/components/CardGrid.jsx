@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import CardTile from './CardTile.jsx';
 
-export default function CardGrid({ results, userEmail }) {
+export default function CardGrid({ results, userEmail, onAddToInventory }) {
   const { t } = useTranslation();
   
   if (!results?.data?.length) {
@@ -30,7 +30,7 @@ export default function CardGrid({ results, userEmail }) {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {results.data.map(c => (
-          <CardTile key={c.id} card={c} userEmail={userEmail} />
+          <CardTile key={c.id} card={c} userEmail={userEmail} onAddToInventory={onAddToInventory} />
         ))}
       </div>
     </div>

@@ -63,3 +63,31 @@ inventory.post('/', async (req, res) => {
     res.status(400).json({ ok: false, error: e.message }); 
   }
 });
+
+inventory.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('DELETE /inventory/:id', id);
+    
+    // First check if the item exists and get the owner
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id },
+      include: { owner: true, printing: true }
+    });
+    
+    if (!item) {
+      return res.status(404).json({ ok: false, error: 'Inventory item not found' });
+    }
+    
+    // Delete the inventory item
+    await prisma.inventoryItem.delete({
+      where: { id }
+    });
+    
+    console.log('Inventory item deleted:', id);
+    res.json({ ok: true, message: 'Inventory item deleted successfully' });
+  } catch (e) {
+    console.error('Error deleting inventory item:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});

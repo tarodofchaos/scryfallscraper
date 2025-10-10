@@ -22,6 +22,10 @@ export default function Inventory({ userEmail }) {
     await load();
   }
 
+  async function handleItemDeleted(deletedId) {
+    setItems(items.filter(item => item.id !== deletedId));
+  }
+
   useEffect(()=>{ if (userEmail) load(); }, [userEmail]);
 
   return (
@@ -43,7 +47,7 @@ export default function Inventory({ userEmail }) {
         </div>
       </div>
       
-      <InventoryTable items={items} userEmail={userEmail} />
+      <InventoryTable items={items} userEmail={userEmail} onItemDeleted={handleItemDeleted} />
     </div>
   );
 }
