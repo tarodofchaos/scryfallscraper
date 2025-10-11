@@ -31,9 +31,8 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
   const [selectedPrinting, setSelectedPrinting] = useState(null);
   const [printings, setPrintings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [setSearchQuery, setSetSearchQuery] = useState('');
-  const [setSearchResults, setSetSearchResults] = useState([]);
-  const [setSearchLoading, setSetSearchLoading] = useState(false);
+  const [setFilterQuery, setSetFilterQuery] = useState('');
+  const [showSetDropdown, setShowSetDropdown] = useState(false);
   const [selectedSet, setSelectedSet] = useState(null);
 
   // Load card printings when modal opens
@@ -41,35 +40,21 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
     if (isOpen && card) {
       loadPrintings();
       setSelectedPrinting(card); // Default to the searched card
-      setSetSearchQuery(''); // Clear set search
+      setSetFilterQuery(''); // Clear set filter
     }
   }, [isOpen, card]);
 
-  // Show all available printings when modal opens
+  // Close dropdown when clicking outside
   useEffect(() => {
-    if (printings.length > 0) {
-      // Show all sets that have printings of this card
-      const cardSets = printings.map(p => p.set);
-      const uniqueSets = [...new Set(cardSets)];
-      const setObjects = uniqueSets.map(setCode => {
-        const printing = printings.find(p => p.set === setCode);
-        return {
-          id: setCode,
-          code: setCode,
-          name: printing?.set_name || setCode,
-          released_at: printing?.released_at || ''
-        };
-      });
-      setSetSearchResults(setObjects);
+    function handleClickOutside(event) {
+      if (showSetDropdown && !event.target.closest('.set-dropdown-container')) {
+        setShowSetDropdown(false);
+      }
     }
-  }, [printings]);
 
-  // Search for sets when query changes
-  useEffect(() => {
-    if (setSearchQuery.length >= 2) {
-      searchSets();
-    }
-  }, [setSearchQuery]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSetDropdown]);
 
   async function loadPrintings() {
     try {
@@ -84,42 +69,33 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
     }
   }
 
-  async function searchSets() {
-    try {
-      setSetSearchLoading(true);
-      
-      // Filter the available printings based on search query
-      const filteredPrintings = printings.filter(printing => 
-        printing.set_name.toLowerCase().includes(setSearchQuery.toLowerCase()) ||
-        printing.set.toLowerCase().includes(setSearchQuery.toLowerCase())
-      );
-      
-      // Convert to set objects
-      const cardSets = filteredPrintings.map(p => p.set);
-      const uniqueSets = [...new Set(cardSets)];
-      const setObjects = uniqueSets.map(setCode => {
-        const printing = filteredPrintings.find(p => p.set === setCode);
-        return {
-          id: setCode,
-          code: setCode,
-          name: printing?.set_name || setCode,
-          released_at: printing?.released_at || ''
-        };
-      });
-      
-      setSetSearchResults(setObjects);
-    } catch (error) {
-      console.error('Error searching sets:', error);
-      setSetSearchResults([]);
-    } finally {
-      setSetSearchLoading(false);
-    }
+  // Get filtered sets based on search query
+  function getFilteredSets() {
+    if (!printings.length) return [];
+    
+    const filteredPrintings = printings.filter(printing => 
+      printing.set_name.toLowerCase().includes(setFilterQuery.toLowerCase()) ||
+      printing.set.toLowerCase().includes(setFilterQuery.toLowerCase())
+    );
+    
+    // Convert to set objects
+    const cardSets = filteredPrintings.map(p => p.set);
+    const uniqueSets = [...new Set(cardSets)];
+    return uniqueSets.map(setCode => {
+      const printing = filteredPrintings.find(p => p.set === setCode);
+      return {
+        id: setCode,
+        code: setCode,
+        name: printing?.set_name || setCode,
+        released_at: printing?.released_at || ''
+      };
+    });
   }
 
   function handleSetSelect(set) {
     setSelectedSet(set);
-    setSetSearchQuery(set.name);
-    setSetSearchResults([]);
+    setSetFilterQuery(set.name);
+    setShowSetDropdown(false);
     
     // Find printings from this set
     const setPrintings = printings.filter(p => p.set === set.code);
@@ -286,30 +262,39 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
                 </div>
               </div>
 
-              {/* Set Search */}
+              {/* Set Selection */}
               <div>
                 <label className="block text-sm font-semibold text-mtg-black mb-3">
                   {t('addCard.set')}
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={setSearchQuery}
-                    onChange={(e) => setSetSearchQuery(e.target.value)}
-                    onFocus={() => setSetSearchResults([])}
-                    placeholder={t('addCard.setPlaceholder')}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
-                  />
-                  {setSearchLoading && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-mtg-blue border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  )}
+                <div className="relative set-dropdown-container">
+                  <button
+                    type="button"
+                    onClick={() => setShowSetDropdown(!showSetDropdown)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900 text-left flex items-center justify-between"
+                  >
+                    <span className={selectedSet ? 'text-gray-900' : 'text-gray-500'}>
+                      {selectedSet ? selectedSet.name : t('addCard.setPlaceholder')}
+                    </span>
+                    <span className="text-gray-400">▼</span>
+                  </button>
                   
-                  {/* Set search results */}
-                  {setSearchResults.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
-                      {setSearchResults.map(set => (
+                  {/* Set dropdown */}
+                  {showSetDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {/* Filter input */}
+                      <div className="p-2 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={setFilterQuery}
+                          onChange={(e) => setSetFilterQuery(e.target.value)}
+                          placeholder="Filter sets..."
+                          className="w-full p-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-mtg-blue focus:border-mtg-blue"
+                        />
+                      </div>
+                      
+                      {/* Set options */}
+                      {getFilteredSets().map(set => (
                         <button
                           key={set.id}
                           onClick={() => handleSetSelect(set)}
@@ -319,6 +304,12 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
                           <div className="text-sm text-gray-600">{set.code} • {set.released_at}</div>
                         </button>
                       ))}
+                      
+                      {getFilteredSets().length === 0 && (
+                        <div className="p-3 text-center text-gray-500 text-sm">
+                          No sets found
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

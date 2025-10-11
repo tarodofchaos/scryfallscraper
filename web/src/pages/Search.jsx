@@ -35,16 +35,21 @@ export default function Search({ userEmail }) {
 
   // Dynamic typing effect for placeholder
   useEffect(() => {
-    if (q.length > 0) return; // Don't animate if user is typing
+    if (q.length > 0) {
+      setPlaceholder(''); // Clear placeholder when user is typing
+      return;
+    }
     
     const currentCard = iconicCards[placeholderIndex];
-    const interval = setInterval(() => {
+    let timeoutId;
+    
+    const animateTyping = () => {
       setPlaceholder(prev => {
         if (prev.length < currentCard.length) {
           return currentCard.substring(0, prev.length + 1);
         } else {
           // Start erasing after a pause
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             setPlaceholder(prev => {
               if (prev.length > 0) {
                 return prev.substring(0, prev.length - 1);
@@ -58,9 +63,14 @@ export default function Search({ userEmail }) {
           return prev;
         }
       });
-    }, 100);
+    };
+    
+    const interval = setInterval(animateTyping, 100);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [placeholderIndex, q]);
 
   async function run() {

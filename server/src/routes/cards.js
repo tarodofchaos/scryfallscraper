@@ -41,8 +41,8 @@ cards.get('/by-name/fuzzy/:name', async (req, res) => {
 cards.get('/:id/prints', async (req, res) => {
   try { 
     const card = await cardService.getCardById(req.params.id);
-    // Search for all printings using oracle_id
-    const response = await fetch(`https://api.scryfall.com/cards/search?q=oracle_id:${card.oracle_id}`);
+    // Search for all printings using oracle_id with unique=prints parameter
+    const response = await fetch(`https://api.scryfall.com/cards/search?q=oracle_id:${card.oracle_id}&unique=prints`);
     if (!response.ok) throw new Error(`Scryfall prints search failed: ${response.status}`);
     const data = await response.json();
     res.json({ ok: true, data: data.data || [] });
