@@ -7,6 +7,7 @@ import DeckImport from '../components/DeckImport.jsx';
 import DeckImportModal from '../components/DeckImportModal.jsx';
 import DeckViewer from '../components/DeckViewer.jsx';
 import DeckCard from '../components/DeckCard.jsx';
+import DeckListingModal from '../components/DeckListingModal.jsx';
 
 export default function Inventory({ userEmail }) {
   const { t } = useTranslation();
@@ -16,6 +17,8 @@ export default function Inventory({ userEmail }) {
   const [showDeckImport, setShowDeckImport] = useState(false);
   const [showDeckViewer, setShowDeckViewer] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState(null);
+  const [showDeckListing, setShowDeckListing] = useState(false);
+  const [deckToSell, setDeckToSell] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -79,6 +82,17 @@ export default function Inventory({ userEmail }) {
     }
   }
 
+  function handleListDeckForSale(deck) {
+    setDeckToSell(deck);
+    setShowDeckListing(true);
+  }
+
+  function handleDeckListingCreated() {
+    setShowDeckListing(false);
+    setDeckToSell(null);
+    // Optionally refresh listings or show success message
+  }
+
   useEffect(()=>{ 
     if (userEmail) {
       load(); 
@@ -134,6 +148,7 @@ export default function Inventory({ userEmail }) {
                     deck={deck}
                     onView={handleViewDeck}
                     onDelete={handleDeleteDeck}
+                    onListForSale={handleListDeckForSale}
                   />
                 ))}
               </div>
@@ -168,6 +183,14 @@ export default function Inventory({ userEmail }) {
         deck={selectedDeck}
         isOpen={showDeckViewer}
         onClose={() => setShowDeckViewer(false)}
+      />
+
+      {/* Deck Listing Modal */}
+      <DeckListingModal
+        deck={deckToSell}
+        isOpen={showDeckListing}
+        onClose={() => setShowDeckListing(false)}
+        onListingCreated={handleDeckListingCreated}
       />
     </div>
   );

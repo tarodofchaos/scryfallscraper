@@ -159,6 +159,11 @@ const DeckImportModal = ({ isOpen, onClose, onDeckImported, userEmail }) => {
       return;
     }
 
+    if (!userEmail) {
+      setError('User email is required. Please log in first.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -175,6 +180,8 @@ const DeckImportModal = ({ isOpen, onClose, onDeckImported, userEmail }) => {
         owner: userEmail
       };
 
+      console.log('Sending deck data:', deckData);
+
       // Save deck to backend
       const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const response = await fetch(`${API}/api/decks`, {
@@ -186,7 +193,9 @@ const DeckImportModal = ({ isOpen, onClose, onDeckImported, userEmail }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save deck');
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        throw new Error(`Failed to save deck: ${errorData.error || 'Unknown error'}`);
       }
 
       const savedDeck = await response.json();

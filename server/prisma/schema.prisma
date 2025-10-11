@@ -69,3 +69,19 @@ model Deck {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+model DeckListing {
+  id           String   @id @default(cuid())
+  deckId       String
+  deckName     String
+  deckSource   String   @default("unknown")
+  deckUrl      String?
+  deckCards    String   // JSON string of cards array
+  totalCards   Int      @default(0)
+  price        Decimal
+  description  String?
+  sellerEmail  String
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

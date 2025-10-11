@@ -8,6 +8,10 @@ const DeckViewer = ({ deck, isOpen, onClose }) => {
 
   if (!isOpen || !deck) return null;
 
+  // Parse cards if it's a JSON string
+  const cards = Array.isArray(deck.cards) ? deck.cards : 
+                typeof deck.cards === 'string' ? JSON.parse(deck.cards) : [];
+
   const getCardTypeColor = (type) => {
     if (type.includes('Creature')) return 'text-green-400';
     if (type.includes('Instant') || type.includes('Sorcery')) return 'text-red-400';
@@ -79,11 +83,11 @@ const DeckViewer = ({ deck, isOpen, onClose }) => {
         {/* Cards List */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-mtg-white">
-            {t('deckViewer.cardsList')} ({deck.cards.length})
+            {t('deckViewer.cardsList')} ({cards.length})
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
-            {deck.cards.map((card, index) => (
+            {cards.map((card, index) => (
               <div
                 key={index}
                 onClick={() => setSelectedCard(card)}

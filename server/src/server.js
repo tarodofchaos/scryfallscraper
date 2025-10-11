@@ -12,6 +12,7 @@ import { inventory } from './routes/inventory.js';
 import { listings } from './routes/listings.js';
 import { users } from './routes/users.js';
 import { decks } from './routes/decks.js';
+import { deckListings } from './routes/deckListings.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -95,6 +96,7 @@ app.use('/api/inventory', inventory);
 app.use('/api/listings', listings);
 app.use('/api/users', users);
 app.use('/api/decks', decks);
+app.use('/api/deck-listings', deckListings);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => logger.info(`API on http://localhost:${port}`));

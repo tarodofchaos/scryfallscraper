@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 
-const DeckCard = ({ deck, onView, onDelete }) => {
+const DeckCard = ({ deck, onView, onDelete, onListForSale }) => {
   const { t } = useTranslation();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Parse cards if it's a JSON string
+  const cards = Array.isArray(deck.cards) ? deck.cards : 
+                typeof deck.cards === 'string' ? JSON.parse(deck.cards) : [];
 
   const getSourceIcon = (source) => {
     const icons = {
@@ -68,6 +72,15 @@ const DeckCard = ({ deck, onView, onDelete }) => {
           >
             👁️
           </button>
+          {onListForSale && (
+            <button
+              onClick={() => onListForSale(deck)}
+              className="p-2 bg-mtg-gold/20 text-mtg-gold rounded-lg hover:bg-mtg-gold/30 transition-colors"
+              title={t('deckCard.listForSale')}
+            >
+              💰
+            </button>
+          )}
           <button
             onClick={handleDelete}
             className={`p-2 rounded-lg transition-colors ${
@@ -118,11 +131,11 @@ const DeckCard = ({ deck, onView, onDelete }) => {
       </div>
 
       {/* Sample Cards Preview */}
-      {deck.cards.length > 0 && (
+      {cards.length > 0 && (
         <div className="mt-3 pt-3 border-t border-white/20">
           <div className="text-xs text-mtg-white/70 mb-2">{t('deckCard.sampleCards')}</div>
           <div className="flex flex-wrap gap-1">
-            {deck.cards.slice(0, 5).map((card, index) => (
+            {cards.slice(0, 5).map((card, index) => (
               <span
                 key={index}
                 className="text-xs bg-white/10 text-mtg-white px-2 py-1 rounded"
@@ -130,9 +143,9 @@ const DeckCard = ({ deck, onView, onDelete }) => {
                 {card.quantity}x {card.name}
               </span>
             ))}
-            {deck.cards.length > 5 && (
+            {cards.length > 5 && (
               <span className="text-xs text-mtg-white/50">
-                +{deck.cards.length - 5} {t('deckCard.more')}
+                +{cards.length - 5} {t('deckCard.more')}
               </span>
             )}
           </div>
@@ -145,7 +158,8 @@ const DeckCard = ({ deck, onView, onDelete }) => {
 DeckCard.propTypes = {
   deck: PropTypes.object.isRequired,
   onView: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired
+  onDelete: PropTypes.func.isRequired,
+  onListForSale: PropTypes.func
 };
 
 export default DeckCard;

@@ -267,7 +267,20 @@ const resources = {
       "deckCard.imported": "Imported",
       "deckCard.created": "Created",
       "deckCard.sampleCards": "Sample Cards",
-      "deckCard.more": "more"
+      "deckCard.more": "more",
+      "deckCard.listForSale": "List for Sale",
+      "deckListing.title": "List Deck for Sale",
+      "deckListing.deckInfo": "Deck Information",
+      "deckListing.deckName": "Deck Name",
+      "deckListing.source": "Source",
+      "deckListing.totalCards": "Total Cards",
+      "deckListing.sourceUrl": "Source URL",
+      "deckListing.price": "Price",
+      "deckListing.description": "Description",
+      "deckListing.descriptionPlaceholder": "Optional description of the deck...",
+      "deckListing.creating": "Creating...",
+      "deckListing.createListing": "Create Listing",
+      "deckListing.error.invalidPrice": "Please enter a valid price"
     }
   },
   es: {
@@ -533,7 +546,20 @@ const resources = {
       "deckCard.imported": "Importadas",
       "deckCard.created": "Creado",
       "deckCard.sampleCards": "Cartas de Muestra",
-      "deckCard.more": "más"
+      "deckCard.more": "más",
+      "deckCard.listForSale": "Listar para Venta",
+      "deckListing.title": "Listar Mazo para Venta",
+      "deckListing.deckInfo": "Información del Mazo",
+      "deckListing.deckName": "Nombre del Mazo",
+      "deckListing.source": "Fuente",
+      "deckListing.totalCards": "Cartas Totales",
+      "deckListing.sourceUrl": "URL de Origen",
+      "deckListing.price": "Precio",
+      "deckListing.description": "Descripción",
+      "deckListing.descriptionPlaceholder": "Descripción opcional del mazo...",
+      "deckListing.creating": "Creando...",
+      "deckListing.createListing": "Crear Lista",
+      "deckListing.error.invalidPrice": "Por favor ingresa un precio válido"
     }
   }
 };

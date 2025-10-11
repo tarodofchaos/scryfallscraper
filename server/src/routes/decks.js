@@ -21,7 +21,13 @@ router.get('/', async (req, res) => {
       }
     });
 
-    res.json({ decks });
+    // Parse cards for each deck
+    const decksWithCards = decks.map(deck => ({
+      ...deck,
+      cards: JSON.parse(deck.cards)
+    }));
+
+    res.json({ decks: decksWithCards });
   } catch (error) {
     console.error('Error fetching decks:', error);
     res.status(500).json({ error: 'Failed to fetch decks' });
@@ -53,9 +59,13 @@ router.get('/:id', async (req, res) => {
 // Create a new deck
 router.post('/', async (req, res) => {
   try {
+    console.log('Received deck data:', req.body);
     const { name, source, url, cards, totalCards, validCards, invalidCards, owner } = req.body;
 
+    console.log('Extracted fields:', { name, owner, source, url });
+
     if (!name || !owner) {
+      console.log('Validation failed:', { name: !!name, owner: !!owner });
       return res.status(400).json({ error: 'Name and owner are required' });
     }
 
@@ -78,6 +88,7 @@ router.post('/', async (req, res) => {
       cards: JSON.parse(deck.cards)
     };
 
+    console.log('Created deck:', deckWithCards);
     res.status(201).json({ deck: deckWithCards });
   } catch (error) {
     console.error('Error creating deck:', error);
