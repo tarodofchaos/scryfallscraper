@@ -1,1 +1,12 @@
 node_modules/*
+server/node_modules/*
+web/node_modules/*
+client_secret_211593295911-rp8m31jqjea5ho2191lku9ls1odurt9v.apps.googleusercontent.com.json
+.gitignore
+AllPrintings.json.zip
+server/prisma/AllPrintings.sqlite
+server/prisma/AllPrintings.sqlite-shm
+server/prisma/AllPrintings.sqlite-wal
+server/prisma/dev.db
+client_secret_1078674171211-fe031g8a2dticgqh7t4395nfmc9u3jf8.apps.googleusercontent.com.json
+server/prisma/dev.db
