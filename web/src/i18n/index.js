@@ -9,16 +9,17 @@ const resources = {
       // Header
       "app.title": "MTG Marketplace",
       "app.tagline": "Trade • Collect • Discover",
-      "nav.search": "Search",
-      "nav.inventory": "Inventory", 
-      "nav.marketplace": "Marketplace",
+    "nav.search": "Search",
+    "nav.inventory": "Inventory", 
+    "nav.marketplace": "Marketplace",
+    "nav.virtualBinder": "Virtual Binder",
       "auth.login": "Login with Google",
       "auth.logout": "Logout",
       
       // Search
       "search.title": "Discover Magic Cards",
       "search.subtitle": "Search through thousands of Magic: The Gathering cards",
-      "search.placeholder": "Search for cards (e.g., lightning bolt set:m11)",
+      // "search.placeholder": "Search for cards (e.g., lightning bolt set:m11)",
       "search.button": "Search",
       "search.loading": "Searching through thousands of cards...",
       "search.noResults": "No cards found",
@@ -53,6 +54,7 @@ const resources = {
       "inventory.empty.subtitle": "Start building your collection by searching for cards",
       "inventory.empty.action": "Browse Cards",
       "inventory.refresh": "Refresh",
+      "inventory.loading": "Loading your collection...",
       "inventory.itemsCount": "{{count}} item",
       "inventory.itemsCount_plural": "{{count}} items",
       "inventory.quickList.title": "Quick List Cards",
@@ -65,6 +67,14 @@ const resources = {
       "inventory.batchList.price": "Price (EUR)",
       "inventory.batchList.quantity": "Quantity per Card",
       "inventory.batchList.action": "List All Selected Cards",
+      "inventory.edit": "Edit",
+      "inventory.condition": "Condition",
+      "inventory.language": "Language",
+      "inventory.quantity": "Quantity",
+      "inventory.save": "Save",
+      "inventory.saving": "Saving...",
+      "inventory.bulkEdit": "Bulk Edit",
+      "inventory.itemsSelected": "items selected",
       "inventory.modal.title": "List {{cardName}}",
       "inventory.modal.price": "Price (EUR)",
       "inventory.modal.quantity": "Quantity",
@@ -149,7 +159,27 @@ const resources = {
       
       // Footer
       "footer.disclaimer": "Prices shown come from Scryfall; EUR values typically reflect Cardmarket. Not affiliated with Wizards of the Coast, Hasbro, Scryfall, or Cardmarket.",
-      "footer.copyright": "© 2024 MTG Marketplace. All rights reserved."
+      "footer.copyright": "© 2024 MTG Marketplace. All rights reserved.",
+      
+      // Virtual Binder
+      "virtualBinder.title": "Virtual Trading Binder",
+      "virtualBinder.subtitle": "Compare card values for fair trades",
+      "virtualBinder.myCards": "My Cards for Trade",
+      "virtualBinder.theirCards": "Their Cards",
+      "virtualBinder.myValue": "My Total Value",
+      "virtualBinder.theirValue": "Their Total Value", 
+      "virtualBinder.difference": "Trade Difference",
+      "virtualBinder.addFromCollection": "Add from Collection",
+      "virtualBinder.searchCards": "Search Cards",
+      "virtualBinder.noMyCards": "No cards added yet. Add cards from your collection to start trading.",
+      "virtualBinder.noTheirCards": "No cards added yet. Search and add cards they want to trade.",
+      "virtualBinder.exportTrade": "Export Trade",
+      "virtualBinder.shareTrade": "Share Trade",
+      "virtualBinder.selectFromCollection": "Select from Collection",
+      "virtualBinder.loadingCollection": "Loading your collection...",
+      "virtualBinder.emptyCollection": "Your collection is empty. Add some cards to your inventory first.",
+      "virtualBinder.addToTrade": "Add to Trade",
+      "virtualBinder.alreadyAdded": "Already Added"
     }
   },
   es: {
@@ -157,16 +187,17 @@ const resources = {
       // Header
       "app.title": "Mercado MTG",
       "app.tagline": "Intercambia • Colecciona • Descubre",
-      "nav.search": "Buscar",
-      "nav.inventory": "Inventario",
-      "nav.marketplace": "Mercado",
+    "nav.search": "Buscar",
+    "nav.inventory": "Inventario",
+    "nav.marketplace": "Mercado",
+    "nav.virtualBinder": "Binder Virtual",
       "auth.login": "Iniciar sesión con Google",
       "auth.logout": "Cerrar sesión",
       
       // Search
       "search.title": "Descubre Cartas Mágicas",
       "search.subtitle": "Busca entre miles de cartas de Magic: The Gathering",
-      "search.placeholder": "Buscar cartas (ej., lightning bolt set:m11)",
+      // "search.placeholder": "Buscar cartas (ej., lightning bolt set:m11)",
       "search.button": "Buscar",
       "search.loading": "Buscando entre miles de cartas...",
       "search.noResults": "No se encontraron cartas",
@@ -201,6 +232,7 @@ const resources = {
       "inventory.empty.subtitle": "Comienza a construir tu colección buscando cartas",
       "inventory.empty.action": "Explorar Cartas",
       "inventory.refresh": "Actualizar",
+      "inventory.loading": "Cargando tu colección...",
       "inventory.itemsCount": "{{count}} artículo",
       "inventory.itemsCount_plural": "{{count}} artículos",
       "inventory.quickList.title": "Listar Cartas Rápidamente",
@@ -213,6 +245,14 @@ const resources = {
       "inventory.batchList.price": "Precio (EUR)",
       "inventory.batchList.quantity": "Cantidad por Carta",
       "inventory.batchList.action": "Listar Todas las Cartas Seleccionadas",
+      "inventory.edit": "Editar",
+      "inventory.condition": "Condición",
+      "inventory.language": "Idioma",
+      "inventory.quantity": "Cantidad",
+      "inventory.save": "Guardar",
+      "inventory.saving": "Guardando...",
+      "inventory.bulkEdit": "Edición en Lote",
+      "inventory.itemsSelected": "artículos seleccionados",
       "inventory.modal.title": "Listar {{cardName}}",
       "inventory.modal.price": "Precio (EUR)",
       "inventory.modal.quantity": "Cantidad",
@@ -297,7 +337,27 @@ const resources = {
       
       // Footer
       "footer.disclaimer": "Los precios mostrados provienen de Scryfall; los valores en EUR típicamente reflejan Cardmarket. No afiliado con Wizards of the Coast, Hasbro, Scryfall, o Cardmarket.",
-      "footer.copyright": "© 2024 Mercado MTG. Todos los derechos reservados."
+      "footer.copyright": "© 2024 Mercado MTG. Todos los derechos reservados.",
+      
+      // Virtual Binder
+      "virtualBinder.title": "Binder Virtual de Intercambio",
+      "virtualBinder.subtitle": "Compara valores de cartas para intercambios justos",
+      "virtualBinder.myCards": "Mis Cartas para Intercambio",
+      "virtualBinder.theirCards": "Sus Cartas",
+      "virtualBinder.myValue": "Mi Valor Total",
+      "virtualBinder.theirValue": "Su Valor Total",
+      "virtualBinder.difference": "Diferencia del Intercambio",
+      "virtualBinder.addFromCollection": "Agregar de Colección",
+      "virtualBinder.searchCards": "Buscar Cartas",
+      "virtualBinder.noMyCards": "No hay cartas agregadas aún. Agrega cartas de tu colección para comenzar a intercambiar.",
+      "virtualBinder.noTheirCards": "No hay cartas agregadas aún. Busca y agrega las cartas que quieren intercambiar.",
+      "virtualBinder.exportTrade": "Exportar Intercambio",
+      "virtualBinder.shareTrade": "Compartir Intercambio",
+      "virtualBinder.selectFromCollection": "Seleccionar de Colección",
+      "virtualBinder.loadingCollection": "Cargando tu colección...",
+      "virtualBinder.emptyCollection": "Tu colección está vacía. Agrega algunas cartas a tu inventario primero.",
+      "virtualBinder.addToTrade": "Agregar al Intercambio",
+      "virtualBinder.alreadyAdded": "Ya Agregado"
     }
   }
 };

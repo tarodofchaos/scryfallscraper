@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cards, Inventory } from '../lib/api.js';
+import PropTypes from 'prop-types';
 
 const CONDITIONS = [
   { value: 'NM', label: 'Near Mint', color: 'bg-green-500 text-white' },
@@ -137,7 +138,8 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
       onClose();
     } catch (error) {
       console.error('Error adding card to inventory:', error);
-      alert('Error adding card to inventory');
+      // Show error in a more user-friendly way
+      alert(`Failed to add card to inventory: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -148,12 +150,12 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
   const currentImage = selectedPrinting?.image_uris?.normal || selectedPrinting?.card_faces?.[0]?.image_uris?.normal || card.image_uris?.normal;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20">
-        <div className="flex h-full">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2">
+      <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden border border-white/20">
+        <div className="flex flex-col lg:flex-row h-full">
           {/* Left side - Card image and basic info */}
-          <div className="w-1/3 bg-gradient-to-br from-mtg-blue/10 to-mtg-gold/10 p-6 flex flex-col items-center">
-            <div className="w-full max-w-xs mb-4">
+          <div className="w-full lg:w-1/3 bg-gradient-to-br from-mtg-blue/10 to-mtg-gold/10 p-4 flex flex-col items-center">
+            <div className="w-full max-w-48 mb-3">
               {currentImage && (
                 <div className="relative overflow-hidden rounded-xl aspect-[488/680] bg-gradient-to-br from-mtg-blue/10 to-mtg-gold/10">
                   <img 
@@ -166,7 +168,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
             </div>
             
             <div className="text-center">
-              <h3 className="font-bold text-lg text-mtg-black mb-2">
+              <h3 className="font-bold text-base text-mtg-black mb-1">
                 {selectedPrinting?.name || card.name}
               </h3>
               <div className="flex items-center gap-2 justify-center">
@@ -181,9 +183,9 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
           </div>
 
           {/* Right side - Form */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-mtg-black">{t('addCard.title')}</h2>
+          <div className="flex-1 p-4 overflow-y-auto max-h-96 lg:max-h-none">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-mtg-black">{t('addCard.title')}</h2>
               <button
                 onClick={onClose}
                 className="w-8 h-8 rounded-full bg-mtg-black/10 hover:bg-mtg-black/20 flex items-center justify-center transition-colors"
@@ -192,33 +194,28 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Condition Selection */}
               <div>
-                <label className="block text-sm font-semibold text-mtg-black mb-3">
+                <label className="block text-sm font-semibold text-mtg-black mb-2">
                   {t('addCard.condition')}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={selectedCondition}
+                  onChange={(e) => setSelectedCondition(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                >
                   {CONDITIONS.map(condition => (
-                    <button
-                      key={condition.value}
-                      onClick={() => setSelectedCondition(condition.value)}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        selectedCondition === condition.value
-                          ? `border-mtg-blue bg-mtg-blue text-white shadow-lg`
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-mtg-blue/50 hover:bg-mtg-blue/5'
-                      }`}
-                    >
-                      <div className="font-medium">{condition.label}</div>
-                      <div className="text-xs opacity-80">{condition.value}</div>
-                    </button>
+                    <option key={condition.value} value={condition.value}>
+                      {condition.label} ({condition.value})
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* Language Selection */}
               <div>
-                <label className="block text-sm font-semibold text-mtg-black mb-3">
+                <label className="block text-sm font-semibold text-mtg-black mb-2">
                   {t('addCard.language')}
                 </label>
                 <select
@@ -236,7 +233,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
 
               {/* Quantity */}
               <div>
-                <label className="block text-sm font-semibold text-mtg-black mb-3">
+                <label className="block text-sm font-semibold text-mtg-black mb-2">
                   {t('addCard.quantity')}
                 </label>
                 <div className="flex items-center gap-3">
@@ -264,7 +261,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
 
               {/* Set Selection */}
               <div>
-                <label className="block text-sm font-semibold text-mtg-black mb-3">
+                <label className="block text-sm font-semibold text-mtg-black mb-2">
                   {t('addCard.set')}
                 </label>
                 <div className="relative set-dropdown-container">
@@ -281,7 +278,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
                   
                   {/* Set dropdown */}
                   {showSetDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
                       {/* Filter input */}
                       <div className="p-2 border-b border-gray-200">
                         <input
@@ -318,10 +315,10 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
               {/* Printing Selection */}
               {printings.length > 1 && (
                 <div>
-                  <label className="block text-sm font-semibold text-mtg-black mb-3">
+                  <label className="block text-sm font-semibold text-mtg-black mb-2">
                     {t('addCard.printing')}
                   </label>
-                  <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white">
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg bg-white">
                     {printings.map(printing => (
                       <button
                         key={printing.id}
@@ -352,7 +349,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleAddToInventory}
                   disabled={loading || !selectedPrinting}
@@ -384,3 +381,11 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
     </div>
   );
 }
+
+AddCardModal.propTypes = {
+  card: PropTypes.object,
+  userEmail: PropTypes.string.isRequired,
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onCardAdded: PropTypes.func.isRequired
+};

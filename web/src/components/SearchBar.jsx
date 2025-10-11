@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
 export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
   const { t } = useTranslation();
@@ -23,7 +24,8 @@ export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
       // Debounce the API call
       timeoutRef.current = setTimeout(async () => {
         try {
-          const res = await fetch(`http://localhost:4000/api/card-names?q=${encodeURIComponent(val)}`);
+          const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+          const res = await fetch(`${API}/api/card-names?q=${encodeURIComponent(val)}`);
           const names = await res.json();
           setSuggestions(names);
           setShowDropdown(true);
@@ -84,13 +86,21 @@ export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
               onBlur={handleBlur}
               onFocus={()=>{if(suggestions.length) setShowDropdown(true);}}
               className="w-full rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-mtg-white placeholder-mtg-white/50 pl-12 pr-4 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-mtg-blue focus:border-transparent transition-all duration-300"
-              placeholder={placeholder || t('search.placeholder')}
+              placeholder={placeholder}
               autoComplete="off"
+              aria-label="Search for Magic: The Gathering cards"
+              aria-expanded={showDropdown}
+              aria-haspopup="listbox"
+              role="combobox"
             />
           </div>
           
           {showDropdown && (
-            <ul className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-10 max-h-64 overflow-auto">
+            <ul 
+              className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-10 max-h-64 overflow-auto"
+              role="listbox"
+              aria-label="Search suggestions"
+            >
               {loadingSuggestions ? (
                 <li className="p-3 text-center text-mtg-black/60">
                   <div className="flex items-center justify-center gap-2">
@@ -123,3 +133,10 @@ export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
     </div>
   );
 }
+
+SearchBar.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  placeholder: PropTypes.string
+};

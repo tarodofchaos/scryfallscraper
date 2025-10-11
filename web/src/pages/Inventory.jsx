@@ -7,11 +7,17 @@ import DeckImport from '../components/DeckImport.jsx';
 export default function Inventory({ userEmail }) {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   async function load() {
-    const res = await Inv.list(userEmail);
-    console.log('Inventory loaded for', userEmail, res.items);
-    setItems(res.items);
+    setLoading(true);
+    try {
+      const res = await Inv.list(userEmail);
+      console.log('Inventory loaded for', userEmail, res.items);
+      setItems(res.items);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAdd() {
@@ -24,6 +30,10 @@ export default function Inventory({ userEmail }) {
 
   async function handleItemDeleted(deletedId) {
     setItems(items.filter(item => item.id !== deletedId));
+  }
+
+  async function handleBulkDelete(deletedIds) {
+    setItems(items.filter(item => !deletedIds.includes(item.id)));
   }
 
   useEffect(()=>{ if (userEmail) load(); }, [userEmail]);
@@ -47,7 +57,21 @@ export default function Inventory({ userEmail }) {
         </div>
       </div>
       
-      <InventoryTable items={items} userEmail={userEmail} onItemDeleted={handleItemDeleted} />
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-mtg-blue/20 to-mtg-gold/20 flex items-center justify-center animate-pulse">
+            <span className="text-2xl">📦</span>
+          </div>
+          <p className="text-mtg-white/70 text-lg">{t('inventory.loading')}</p>
+        </div>
+      ) : (
+        <InventoryTable 
+        items={items} 
+        userEmail={userEmail} 
+        onItemDeleted={handleItemDeleted}
+        onBulkDelete={handleBulkDelete}
+      />
+      )}
     </div>
   );
 }

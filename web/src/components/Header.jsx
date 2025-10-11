@@ -1,33 +1,82 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
 const Header = ({ setUser, setView, view }) => {
   const { t } = useTranslation();
   const [localUser, setLocalUser] = useState(null);
+  const [currentManaSymbol, setCurrentManaSymbol] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const [isMorphing, setIsMorphing] = useState(false);
   const inventoryBtnRef = useRef();
 
+  // Mana symbols in WUBRG + Colorless order with local SVG assets
+  const manaSymbols = [
+    { symbol: 'W', name: 'White', svg: '/src/assets/mana-symbols/W.svg' },
+    { symbol: 'U', name: 'Blue', svg: '/src/assets/mana-symbols/U.svg' },
+    { symbol: 'B', name: 'Black', svg: '/src/assets/mana-symbols/B.svg' },
+    { symbol: 'R', name: 'Red', svg: '/src/assets/mana-symbols/R.svg' },
+    { symbol: 'G', name: 'Green', svg: '/src/assets/mana-symbols/G.svg' },
+    { symbol: 'C', name: 'Colorless', svg: '/src/assets/mana-symbols/C.svg' }
+  ];
+
+  // Helper function to get mana symbol gradient
+  const getManaGradient = (symbolIndex) => {
+    const gradients = [
+      'linear-gradient(135deg, #f8f9fa, #e9ecef)', // White
+      'linear-gradient(135deg, #0d6efd, #0b5ed7)', // Blue
+      'linear-gradient(135deg, #212529, #495057)', // Black
+      'linear-gradient(135deg, #dc3545, #b02a37)', // Red
+      'linear-gradient(135deg, #198754, #146c43)', // Green
+      'linear-gradient(135deg, #6c757d, #495057)'  // Colorless (Gray)
+    ];
+    return gradients[symbolIndex] || gradients[5]; // Default to colorless
+  };
+
+  // Cycle through mana symbols with morphing effect
   useEffect(() => {
-    fetch('http://localhost:4000/api/me', {
+    const interval = setInterval(() => {
+      setIsMorphing(true);
+      
+      // Start morphing animation
+      setTimeout(() => {
+        setCurrentManaSymbol(prev => (prev + 1) % manaSymbols.length);
+      }, 300); // Half of the morphing duration
+      
+      // End morphing animation
+      setTimeout(() => {
+        setIsMorphing(false);
+      }, 600); // Full morphing duration
+    }, 3000); // Change every 3 seconds (longer to see the morphing)
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    fetch(`${API}/api/me`, {
       credentials: 'include'
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data && data.ok) {
+        if (data?.ok) {
           setLocalUser(data.user);
-          setUser && setUser(data.user);
+          setUser?.(data.user);
         } else {
           setLocalUser(null);
-          setUser && setUser(null);
+          setUser?.(null);
         }
       });
   }, [setUser]);
 
   function handleGoogleLogin() {
-    window.location.href = 'http://localhost:4000/auth/google';
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    window.location.href = `${API}/auth/google`;
   }
 
   function handleLogout() {
-    window.location.href = 'http://localhost:4000/logout';
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    window.location.href = `${API}/logout`;
   }
 
   return (
@@ -37,8 +86,28 @@ const Header = ({ setUser, setView, view }) => {
           {/* Logo and Brand */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full mtg-gradient flex items-center justify-center animate-float">
-                <span className="text-2xl font-bold text-white">⚡</span>
+              <div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center animate-float transition-all duration-500 hover:scale-110 ${
+                  isMorphing ? 'animate-mana-morph animate-mana-glow' : ''
+                }`}
+                style={{
+                  background: getManaGradient(currentManaSymbol),
+                  transform: `rotate(${currentManaSymbol * 60}deg)`, // 60 degrees per color (360/6)
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                }}
+              >
+                {imageError ? (
+                  <span className="text-2xl font-bold text-white drop-shadow-lg">
+                    {manaSymbols[currentManaSymbol].symbol}
+                  </span>
+                ) : (
+                  <img 
+                    src={manaSymbols[currentManaSymbol].svg}
+                    alt={manaSymbols[currentManaSymbol].name}
+                    className="w-8 h-8 drop-shadow-lg transition-all duration-300"
+                    onError={() => setImageError(true)}
+                  />
+                )}
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-mtg-blue via-mtg-gold to-mtg-red bg-clip-text text-transparent">
@@ -54,7 +123,8 @@ const Header = ({ setUser, setView, view }) => {
             {[
               { key: 'Search', translation: 'nav.search' },
               { key: 'Inventory', translation: 'nav.inventory' },
-              { key: 'Marketplace', translation: 'nav.marketplace' }
+              { key: 'Marketplace', translation: 'nav.marketplace' },
+              { key: 'VirtualBinder', translation: 'nav.virtualBinder' }
             ].map(({ key, translation }) => (
               <button
                 key={key}
@@ -66,6 +136,8 @@ const Header = ({ setUser, setView, view }) => {
                     : 'text-mtg-white/80 hover:text-mtg-white hover:bg-white/10'
                 }`}
                 id={key === 'Inventory' ? 'inventory-btn' : undefined}
+                aria-label={`Navigate to ${key} page`}
+                aria-current={view === key ? 'page' : undefined}
               >
                 {t(translation)}
               </button>
@@ -89,6 +161,7 @@ const Header = ({ setUser, setView, view }) => {
                 <button 
                   className="btn-danger text-sm" 
                   onClick={handleLogout}
+                  aria-label="Logout from your account"
                 >
                   {t('auth.logout')}
                 </button>
@@ -97,6 +170,7 @@ const Header = ({ setUser, setView, view }) => {
               <button 
                 className="btn-primary text-sm" 
                 onClick={handleGoogleLogin}
+                aria-label="Login with Google account"
               >
                 {t('auth.login')}
               </button>
@@ -109,7 +183,8 @@ const Header = ({ setUser, setView, view }) => {
           {[
             { key: 'Search', translation: 'nav.search' },
             { key: 'Inventory', translation: 'nav.inventory' },
-            { key: 'Marketplace', translation: 'nav.marketplace' }
+            { key: 'Marketplace', translation: 'nav.marketplace' },
+            { key: 'VirtualBinder', translation: 'nav.virtualBinder' }
           ].map(({ key, translation }) => (
             <button
               key={key}
@@ -129,6 +204,12 @@ const Header = ({ setUser, setView, view }) => {
       </div>
     </header>
   );
+};
+
+Header.propTypes = {
+  setUser: PropTypes.func.isRequired,
+  setView: PropTypes.func.isRequired,
+  view: PropTypes.string.isRequired
 };
 
 export default Header;

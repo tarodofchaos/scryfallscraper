@@ -4,12 +4,13 @@ import Header from './components/Header.jsx';
 import Search from './pages/Search.jsx';
 import Inventory from './pages/Inventory.jsx';
 import Marketplace from './pages/Marketplace.jsx';
+import VirtualBinder from './pages/VirtualBinder.jsx';
 
 export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState('Search');
   const [user, setUser] = useState(null);
-  const Current = useMemo(()=> ({Search, Inventory, Marketplace}[view]), [view]);
+  const Current = useMemo(()=> ({Search, Inventory, Marketplace, VirtualBinder}[view]), [view]);
 
   return (
     <div className="min-h-screen flex flex-col">

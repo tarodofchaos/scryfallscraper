@@ -4,6 +4,7 @@ import SearchBar from '../components/SearchBar.jsx';
 import CardGrid from '../components/CardGrid.jsx';
 import AddCardModal from '../components/AddCardModal.jsx';
 import { Cards } from '../lib/api.js';
+import PropTypes from 'prop-types';
 
 export default function Search({ userEmail }) {
   const { t } = useTranslation();
@@ -42,27 +43,34 @@ export default function Search({ userEmail }) {
     
     const currentCard = iconicCards[placeholderIndex];
     let timeoutId;
+    let isTyping = true;
+    let currentLength = 0;
     
     const animateTyping = () => {
-      setPlaceholder(prev => {
-        if (prev.length < currentCard.length) {
-          return currentCard.substring(0, prev.length + 1);
+      if (isTyping) {
+        // Typing phase
+        if (currentLength < currentCard.length) {
+          currentLength++;
+          setPlaceholder(currentCard.substring(0, currentLength));
         } else {
-          // Start erasing after a pause
+          // Finished typing, start erasing after pause
+          isTyping = false;
           timeoutId = setTimeout(() => {
-            setPlaceholder(prev => {
-              if (prev.length > 0) {
-                return prev.substring(0, prev.length - 1);
+            const eraseInterval = setInterval(() => {
+              if (currentLength > 0) {
+                currentLength--;
+                setPlaceholder(currentCard.substring(0, currentLength));
               } else {
-                // Move to next card
+                // Finished erasing, move to next card
+                clearInterval(eraseInterval);
                 setPlaceholderIndex(prev => (prev + 1) % iconicCards.length);
-                return '';
+                isTyping = true;
+                currentLength = 0;
               }
-            });
+            }, 50);
           }, 2000);
-          return prev;
         }
-      });
+      }
     };
     
     const interval = setInterval(animateTyping, 100);
@@ -116,3 +124,7 @@ export default function Search({ userEmail }) {
     </div>
   );
 }
+
+Search.propTypes = {
+  userEmail: PropTypes.string
+};

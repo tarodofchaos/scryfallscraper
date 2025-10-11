@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cards, Inventory } from '../lib/api.js';
 import PriceBadge from './PriceBadge.jsx';
+import OptimizedImage from './OptimizedImage.jsx';
 
 function CardTile({ card, userEmail, onAddToInventory }) {
   const { t } = useTranslation();
@@ -37,10 +38,11 @@ function CardTile({ card, userEmail, onAddToInventory }) {
       {/* Card Image with Hover Effect */}
       {img && (
         <div className="relative overflow-hidden rounded-xl mb-4 aspect-[488/680] bg-gradient-to-br from-mtg-blue/10 to-mtg-gold/10">
-          <img 
+          <OptimizedImage 
             src={img} 
             alt={card.name} 
-            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+            fallback="🎴"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

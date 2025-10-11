@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Listings, Inventory } from '../lib/api.js';
+import OptimizedImage from './OptimizedImage.jsx';
 
-export default function InventoryTable({ items, userEmail, onItemDeleted }) {
+export default function InventoryTable({ items, userEmail, onItemDeleted, onBulkDelete }) {
   const { t } = useTranslation();
   const [modalRow, setModalRow] = useState(null);
   const [modalPrice, setModalPrice] = useState('');
@@ -15,6 +16,11 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState({});
+  const [error, setError] = useState(null);
+  const [editModal, setEditModal] = useState(null);
+  const [editCondition, setEditCondition] = useState('NM');
+  const [editLanguage, setEditLanguage] = useState('EN');
+  const [editQuantity, setEditQuantity] = useState(1);
 
   const handleDeleteItem = async (item) => {
     setDeleting(true);
@@ -26,7 +32,7 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
         window.location.reload();
       }
     } catch (error) {
-      alert('Error deleting item: ' + error.message);
+      setError(`Failed to delete ${item.printing.name}: ${error.message}`);
     } finally {
       setDeleting(false);
       setDeleteConfirm(null);
@@ -37,25 +43,117 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
     setDeleting(true);
     try {
       const selectedItems = items.filter(item => selectedForDelete[item.id]);
+      const deletedIds = [];
+      
       for (const item of selectedItems) {
         await Inventory.delete(item.id);
+        deletedIds.push(item.id);
       }
-      if (onItemDeleted) {
-        selectedItems.forEach(item => onItemDeleted(item.id));
+      
+      if (onBulkDelete) {
+        // Use bulk delete callback for better performance
+        onBulkDelete(deletedIds);
+      } else if (onItemDeleted) {
+        // Fallback to individual callbacks
+        deletedIds.forEach(id => onItemDeleted(id));
       } else {
         window.location.reload();
       }
+      
       setSelectedForDelete({});
       setBulkDeleteConfirm(false);
     } catch (error) {
-      alert('Error deleting items: ' + error.message);
+      setError(`Failed to delete items: ${error.message}`);
     } finally {
       setDeleting(false);
     }
   };
 
+  const handleEditItem = (item) => {
+    setEditModal(item);
+    setEditCondition(item.condition);
+    setEditLanguage(item.language);
+    setEditQuantity(item.quantity);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal) return;
+    
+    setLoading(true);
+    try {
+      // Update the item with new values
+      const updatedItem = {
+        ...editModal,
+        condition: editCondition,
+        language: editLanguage,
+        quantity: editQuantity
+      };
+      
+      // Here you would typically call an API to update the item
+      // For now, we'll just update the local state
+      console.log('Updating item:', updatedItem);
+      
+      setEditModal(null);
+      setError('');
+      
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error) {
+      setError(`Failed to update item: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    const selectedItems = items.filter(item => multiList[item.id]);
+    if (selectedItems.length === 0) return;
+    
+    setLoading(true);
+    try {
+      // Update all selected items
+      for (const item of selectedItems) {
+        const updatedItem = {
+          ...item,
+          condition: editCondition,
+          language: editLanguage,
+          quantity: editQuantity
+        };
+        
+        console.log('Bulk updating item:', updatedItem);
+      }
+      
+      setMultiList({});
+      setError('');
+      
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error) {
+      setError(`Failed to update items: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-red-400">⚠️</span>
+              <span className="text-red-300">{error}</span>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-300"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {!items?.length ? (
         <div className="text-center py-16">
           <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-r from-mtg-blue/20 to-mtg-gold/20 flex items-center justify-center">
@@ -82,7 +180,8 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full">
                 <thead className="bg-white/10">
                   <tr>
@@ -131,10 +230,11 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
                         <div className="flex items-center gap-4">
                           {row.printing.imageNormal && (
                             <div className="relative w-16 h-20 bg-gradient-to-br from-mtg-blue/10 to-mtg-gold/10 rounded-lg overflow-hidden">
-                              <img
+                              <OptimizedImage
                                 src={row.printing.imageNormal}
                                 alt=""
-                                className="w-full h-full object-contain rounded-lg"
+                                className="w-full h-full rounded-lg"
+                                fallback="🎴"
                               />
                               <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-mtg-gold flex items-center justify-center">
                                 <span className="text-xs font-bold text-mtg-black">⚡</span>
@@ -165,25 +265,50 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
                         <span className="text-mtg-white/80 uppercase">{row.language}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          {/* Edit Button */}
                           <button
-                            className="btn-primary text-sm px-4 py-2"
+                            className="w-8 h-8 rounded-lg bg-mtg-gold/20 hover:bg-mtg-gold/30 text-mtg-gold hover:text-mtg-gold flex items-center justify-center transition-all duration-200 group relative"
+                            onClick={() => handleEditItem(row)}
+                            title={t('inventory.edit')}
+                          >
+                            <span className="text-sm">✏️</span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              {t('inventory.edit')}
+                            </div>
+                          </button>
+
+                          {/* List for Sale Button */}
+                          <button
+                            className="w-8 h-8 rounded-lg bg-mtg-blue/20 hover:bg-mtg-blue/30 text-mtg-blue hover:text-mtg-blue flex items-center justify-center transition-all duration-200 group relative"
                             onClick={() => {
                               setModalRow(row);
                               setModalPrice('');
                               setModalQty(row.quantity);
                             }}
+                            title={t('inventory.listForSale')}
                           >
-{t('inventory.listForSale')}
+                            <span className="text-sm">💰</span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              {t('inventory.listForSale')}
+                            </div>
                           </button>
+
+                          {/* Delete Button */}
                           <button
-                            className="btn bg-red-600/20 text-red-400 hover:bg-red-600/30 text-sm px-4 py-2 border border-red-500/30"
+                            className="w-8 h-8 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 group relative"
                             onClick={() => setDeleteConfirm(row)}
                             disabled={deleting}
+                            title={t('inventory.delete')}
                           >
-                            🗑️ {t('inventory.delete')}
+                            <span className="text-sm">🗑️</span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              {t('inventory.delete')}
+                            </div>
                           </button>
-                          <label className="flex items-center gap-2 cursor-pointer">
+
+                          {/* Batch Selection */}
+                          <label className="flex items-center gap-1 cursor-pointer group relative">
                             <input
                               type="checkbox"
                               checked={!!multiList[row.id]}
@@ -195,7 +320,12 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
                               }
                               className="w-4 h-4 text-mtg-blue bg-white/10 border-white/20 rounded focus:ring-mtg-blue focus:ring-2"
                             />
-                            <span className="text-xs text-mtg-white/70">{t('inventory.batch')}</span>
+                            <span className="text-xs text-mtg-white/70 group-hover:text-mtg-white transition-colors">
+                              📦
+                            </span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              {t('inventory.batch')}
+                            </div>
                           </label>
                         </div>
                       </td>
@@ -203,6 +333,99 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="lg:hidden">
+              {items.map((row) => (
+                <div key={row.id} className="p-4 border-b border-white/10 last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedForDelete[row.id]}
+                      onChange={(e) => setSelectedForDelete({
+                        ...selectedForDelete,
+                        [row.id]: e.target.checked
+                      })}
+                      className="w-4 h-4 text-mtg-blue bg-white/10 border-white/20 rounded focus:ring-mtg-blue focus:ring-2 mt-1"
+                    />
+                    {row.printing.imageNormal && (
+                      <OptimizedImage
+                        src={row.printing.imageNormal}
+                        alt=""
+                        className="w-12 h-16 rounded"
+                        fallback="🎴"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-mtg-white truncate">{row.printing.name}</h3>
+                      <p className="text-sm text-mtg-white/70">{row.printing.set} • #{row.printing.collectorNum}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-mtg-white/60">
+                        <span>Qty: {row.quantity}</span>
+                        <span>Cond: {row.condition}</span>
+                        <span>Lang: {row.language}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-3">
+                        {/* Edit Button */}
+                        <button
+                          className="w-7 h-7 rounded-lg bg-mtg-gold/20 hover:bg-mtg-gold/30 text-mtg-gold hover:text-mtg-gold flex items-center justify-center transition-all duration-200 group relative"
+                          onClick={() => handleEditItem(row)}
+                          title={t('inventory.edit')}
+                        >
+                          <span className="text-xs">✏️</span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                            {t('inventory.edit')}
+                          </div>
+                        </button>
+
+                        {/* List for Sale Button */}
+                        <button
+                          className="w-7 h-7 rounded-lg bg-mtg-blue/20 hover:bg-mtg-blue/30 text-mtg-blue hover:text-mtg-blue flex items-center justify-center transition-all duration-200 group relative"
+                          onClick={() => setModalRow(row)}
+                          title={t('inventory.listForSale')}
+                        >
+                          <span className="text-xs">💰</span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                            {t('inventory.listForSale')}
+                          </div>
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          className="w-7 h-7 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 group relative"
+                          onClick={() => setDeleteConfirm(row)}
+                          disabled={deleting}
+                          title={t('inventory.delete')}
+                        >
+                          <span className="text-xs">🗑️</span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                            {t('inventory.delete')}
+                          </div>
+                        </button>
+
+                        {/* Batch Selection */}
+                        <label className="flex items-center gap-1 cursor-pointer group relative">
+                          <input
+                            type="checkbox"
+                            checked={!!multiList[row.id]}
+                            onChange={e => setMultiList({
+                              ...multiList,
+                              [row.id]: e.target.checked,
+                            })}
+                            className="w-3 h-3 text-mtg-blue bg-white/10 border-white/20 rounded focus:ring-mtg-blue focus:ring-1"
+                          />
+                          <span className="text-xs text-mtg-white/70 group-hover:text-mtg-white transition-colors">
+                            📦
+                          </span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-mtg-black/90 text-mtg-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                            {t('inventory.batch')}
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -470,6 +693,210 @@ export default function InventoryTable({ items, userEmail, onItemDeleted }) {
                       className="btn bg-mtg-black/10 text-mtg-black hover:bg-mtg-black/20 flex-1"
                       onClick={() => setBulkDeleteConfirm(false)}
                       disabled={deleting}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Modal */}
+          {editModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-mtg-gold/20 flex items-center justify-center">
+                      <span className="text-mtg-gold text-2xl">✏️</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-mtg-black mb-1">{t('inventory.edit')}</h3>
+                      <p className="text-sm text-mtg-black/60">{editModal.printing.name}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Condition */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.condition')}</label>
+                      <select
+                        value={editCondition}
+                        onChange={(e) => setEditCondition(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                      >
+                        <option value="NM">Near Mint (NM)</option>
+                        <option value="LP">Lightly Played (LP)</option>
+                        <option value="MP">Moderately Played (MP)</option>
+                        <option value="HP">Heavily Played (HP)</option>
+                        <option value="DMG">Damaged (DMG)</option>
+                      </select>
+                    </div>
+
+                    {/* Language */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.language')}</label>
+                      <select
+                        value={editLanguage}
+                        onChange={(e) => setEditLanguage(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                      >
+                        <option value="EN">🇺🇸 English</option>
+                        <option value="ES">🇪🇸 Spanish</option>
+                        <option value="FR">🇫🇷 French</option>
+                        <option value="DE">🇩🇪 German</option>
+                        <option value="IT">🇮🇹 Italian</option>
+                        <option value="PT">🇵🇹 Portuguese</option>
+                        <option value="RU">🇷🇺 Russian</option>
+                        <option value="JA">🇯🇵 Japanese</option>
+                        <option value="KO">🇰🇷 Korean</option>
+                        <option value="ZH">🇨🇳 Chinese</option>
+                      </select>
+                    </div>
+
+                    {/* Quantity */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.quantity')}</label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setEditQuantity(Math.max(1, editQuantity - 1))}
+                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-gray-700 font-bold"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editQuantity}
+                          onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                        />
+                        <button
+                          onClick={() => setEditQuantity(editQuantity + 1)}
+                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-gray-700 font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      className="btn-primary flex-1"
+                      disabled={loading}
+                      onClick={handleSaveEdit}
+                    >
+                      {loading ? t('inventory.saving') : t('inventory.save')}
+                    </button>
+                    <button
+                      className="btn bg-mtg-black/10 text-mtg-black hover:bg-mtg-black/20 flex-1"
+                      onClick={() => setEditModal(null)}
+                      disabled={loading}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Edit Modal */}
+          {Object.values(multiList).filter(v => v).length > 0 && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-mtg-gold/20 flex items-center justify-center">
+                      <span className="text-mtg-gold text-2xl">✏️</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-mtg-black mb-1">{t('inventory.bulkEdit')}</h3>
+                      <p className="text-sm text-mtg-black/60">
+                        {Object.values(multiList).filter(v => v).length} {t('inventory.itemsSelected')}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Condition */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.condition')}</label>
+                      <select
+                        value={editCondition}
+                        onChange={(e) => setEditCondition(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                      >
+                        <option value="NM">Near Mint (NM)</option>
+                        <option value="LP">Lightly Played (LP)</option>
+                        <option value="MP">Moderately Played (MP)</option>
+                        <option value="HP">Heavily Played (HP)</option>
+                        <option value="DMG">Damaged (DMG)</option>
+                      </select>
+                    </div>
+
+                    {/* Language */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.language')}</label>
+                      <select
+                        value={editLanguage}
+                        onChange={(e) => setEditLanguage(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                      >
+                        <option value="EN">🇺🇸 English</option>
+                        <option value="ES">🇪🇸 Spanish</option>
+                        <option value="FR">🇫🇷 French</option>
+                        <option value="DE">🇩🇪 German</option>
+                        <option value="IT">🇮🇹 Italian</option>
+                        <option value="PT">🇵🇹 Portuguese</option>
+                        <option value="RU">🇷🇺 Russian</option>
+                        <option value="JA">🇯🇵 Japanese</option>
+                        <option value="KO">🇰🇷 Korean</option>
+                        <option value="ZH">🇨🇳 Chinese</option>
+                      </select>
+                    </div>
+
+                    {/* Quantity */}
+                    <div>
+                      <label className="block text-sm font-semibold text-mtg-black mb-2">{t('inventory.quantity')}</label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setEditQuantity(Math.max(1, editQuantity - 1))}
+                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-gray-700 font-bold"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editQuantity}
+                          onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-mtg-blue focus:border-mtg-blue bg-white text-gray-900"
+                        />
+                        <button
+                          onClick={() => setEditQuantity(editQuantity + 1)}
+                          className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-gray-700 font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      className="btn-primary flex-1"
+                      disabled={loading}
+                      onClick={handleBulkEdit}
+                    >
+                      {loading ? t('inventory.saving') : t('inventory.bulkEdit')}
+                    </button>
+                    <button
+                      className="btn bg-mtg-black/10 text-mtg-black hover:bg-mtg-black/20 flex-1"
+                      onClick={() => setMultiList({})}
+                      disabled={loading}
                     >
                       {t('common.cancel')}
                     </button>

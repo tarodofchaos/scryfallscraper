@@ -30,7 +30,9 @@ export default function DeckImport({ userEmail, onImportComplete }) {
     
     for (const line of lines) {
       // Skip empty lines and comments
-      if (!line.trim() || line.startsWith('//') || line.startsWith('#') || line.startsWith('Sideboard')) continue;
+      if (!line.trim() || line.startsWith('//') || line.startsWith('#') || line.startsWith('Sideboard')) {
+        continue;
+      }
       
       // Different parsing based on source
       let match;
@@ -68,13 +70,14 @@ export default function DeckImport({ userEmail, onImportComplete }) {
       
       if (match) {
         const [, quantity, name, set] = match;
-        cards.push({
+        const card = {
           name: name.trim(),
           quantity: parseInt(quantity),
           set: set ? set.trim() : null,
           condition: 'NM', // Default condition
           language: 'EN' // Default language
-        });
+        };
+        cards.push(card);
       }
     }
     
@@ -95,15 +98,23 @@ export default function DeckImport({ userEmail, onImportComplete }) {
   }
 
   async function handlePreview() {
-    console.log('handlePreview called', { importText: importText.substring(0, 100), importSource, inputMode });
+    console.log('handlePreview called', { 
+      importText: importText.substring(0, 100), 
+      importSource, 
+      inputMode,
+      hasText: !!importText.trim()
+    });
     
     if (!importText.trim()) {
+      console.log('No text provided, setting error');
       setError(t('deckImport.errors.emptyText'));
       return;
     }
 
+    setLoading(true);
+    setError('');
+
     try {
-      setError('');
       let deckText = importText;
       
       // If URL mode, try to fetch the deck list
@@ -118,15 +129,70 @@ export default function DeckImport({ userEmail, onImportComplete }) {
       console.log('Parsed cards:', cards);
       
       if (cards.length === 0) {
+        console.log('No cards found after parsing');
         setError(t('deckImport.errors.noCardsFound'));
         return;
       }
 
-      setPreview(cards);
-      console.log('Preview set with', cards.length, 'cards');
+      // Validate each card against Scryfall API
+      console.log('Validating cards against Scryfall API...');
+      const validatedCards = [];
+      const invalidCards = [];
+      
+      for (const card of cards) {
+        try {
+          console.log(`Validating card: ${card.name}`);
+          const searchResult = await Cards.search(card.name);
+          
+          if (searchResult.data && searchResult.data.length > 0) {
+            // Find exact match (case-insensitive)
+            const exactMatch = searchResult.data.find(c => 
+              c.name.toLowerCase() === card.name.toLowerCase()
+            );
+            
+            if (exactMatch) {
+              console.log(`✅ Valid card: ${card.name} -> ${exactMatch.name}`);
+              validatedCards.push({
+                ...card,
+                validated: true,
+                scryfallData: exactMatch
+              });
+            } else {
+              console.log(`❌ No exact match for: ${card.name}`);
+              invalidCards.push(card.name);
+            }
+          } else {
+            console.log(`❌ Card not found: ${card.name}`);
+            invalidCards.push(card.name);
+          }
+        } catch (err) {
+          console.error(`Error validating ${card.name}:`, err);
+          invalidCards.push(card.name);
+        }
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      console.log(`Validation complete: ${validatedCards.length} valid, ${invalidCards.length} invalid`);
+      
+      if (validatedCards.length === 0) {
+        setError(`No valid cards found. All cards failed validation:\n${invalidCards.join('\n')}`);
+        return;
+      }
+      
+      if (invalidCards.length > 0) {
+        setError(`⚠️ Some cards could not be validated:\n${invalidCards.join('\n')}\n\nOnly valid cards will be imported.`);
+      }
+
+      console.log('Setting preview with', validatedCards.length, 'validated cards');
+      setPreview(validatedCards);
+      
     } catch (err) {
       console.error('Preview error:', err);
       setError(t('deckImport.errors.parseError'));
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -151,7 +217,8 @@ export default function DeckImport({ userEmail, onImportComplete }) {
     try {
       // Check if user is logged in
       console.log('Checking if user is logged in...');
-      const meResponse = await fetch('http://localhost:4000/api/me', {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const meResponse = await fetch(`${API}/api/me`, {
         credentials: 'include'
       });
       const meData = await meResponse.json();
@@ -180,25 +247,21 @@ export default function DeckImport({ userEmail, onImportComplete }) {
 
         for (const card of batch) {
           setImportProgress({ current: i + batch.indexOf(card) + 1, total: preview.length, currentCard: card.name });
-        try {
-          console.log('Searching for card:', card.name);
           
-          // Use the API helper instead of hardcoded URL
-          const searchData = await Cards.search(card.name);
-          console.log('Search response:', searchData);
-          
-          if (searchData.data && searchData.data.length > 0) {
-            // Use the first result
-            const foundCard = searchData.data[0];
+          try {
+            console.log('Importing validated card:', card.name);
+            
+            // Use the validated Scryfall data
+            const scryfallData = card.scryfallData;
             const printing = {
-              id: foundCard.id,
-              oracleId: foundCard.oracle_id,
-              name: foundCard.name,
-              set: foundCard.set,
-              collectorNum: String(foundCard.collector_number),
-              rarity: foundCard.rarity,
+              id: scryfallData.id,
+              oracleId: scryfallData.oracle_id,
+              name: scryfallData.name,
+              set: scryfallData.set,
+              collectorNum: String(scryfallData.collector_number),
+              rarity: scryfallData.rarity,
               foil: false,
-              imageNormal: foundCard.image_uris?.normal || foundCard.card_faces?.[0]?.image_uris?.normal
+              imageNormal: scryfallData.image_uris?.normal || scryfallData.card_faces?.[0]?.image_uris?.normal
             };
 
             console.log('Adding card to inventory:', printing);
@@ -218,14 +281,11 @@ export default function DeckImport({ userEmail, onImportComplete }) {
             
             console.log('Successfully added card:', card.name);
             successCount++;
-          } else {
-            console.log('Card not found:', card.name);
+            
+          } catch (err) {
+            console.error('Error importing card:', card.name, err);
             errorCount++;
           }
-        } catch (err) {
-          console.error('Error processing card:', card.name, err);
-          errorCount++;
-        }
 
         // Add delay between individual cards
         if (batch.indexOf(card) < batch.length - 1) {
@@ -242,19 +302,19 @@ export default function DeckImport({ userEmail, onImportComplete }) {
 
       console.log('Import completed:', { successCount, errorCount });
 
-      setPreview(null);
-      setImportText('');
-      setIsOpen(false);
-      
-      if (onImportComplete) {
-        onImportComplete();
+      // Show results
+      if (errorCount > 0) {
+        setError(`Import completed with ${errorCount} errors. ${successCount} cards imported successfully.`);
+      } else {
+        setError('');
+        setPreview(null);
+        setImportText('');
+        setIsOpen(false);
+        
+        if (onImportComplete) {
+          onImportComplete();
+        }
       }
-
-      // Show success message
-      alert(t('deckImport.success.message', { 
-        success: successCount, 
-        errors: errorCount 
-      }));
       
     } catch (err) {
       console.error('Import error:', err);
@@ -285,8 +345,8 @@ export default function DeckImport({ userEmail, onImportComplete }) {
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-mtg-black/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl border border-white/20 max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 flex-1 overflow-y-auto">
+          <div className="bg-mtg-black/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl border border-white/20 max-h-[95vh] overflow-hidden flex flex-col">
+            <div className="p-6 flex-1 overflow-y-auto min-h-0">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-mtg-white">
@@ -379,13 +439,14 @@ export default function DeckImport({ userEmail, onImportComplete }) {
                 </div>
               )}
 
+
               {/* Preview */}
               {preview && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-mtg-white mb-3">
                     {t('deckImport.preview.title')} ({preview.length} {t('deckImport.preview.cards')})
                   </h3>
-                  <div className="max-h-60 overflow-y-auto border border-white/20 rounded-lg bg-white/5">
+                  <div className="max-h-40 overflow-y-auto border border-white/20 rounded-lg bg-white/5">
                     {preview.map((card, index) => (
                       <div key={`${card.name}-${index}`} className="p-3 border-b border-white/10 last:border-b-0 flex items-center justify-between">
                         <div>
@@ -430,10 +491,7 @@ export default function DeckImport({ userEmail, onImportComplete }) {
               
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    console.log('Preview button clicked!');
-                    handlePreview();
-                  }}
+                  onClick={handlePreview}
                   disabled={!importText.trim() || loading}
                   className="btn-secondary flex-1"
                 >
