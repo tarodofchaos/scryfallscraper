@@ -11,6 +11,7 @@ import { cards } from './routes/cards.js';
 import { inventory } from './routes/inventory.js';
 import { listings } from './routes/listings.js';
 import { users } from './routes/users.js';
+import { decks } from './routes/decks.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -89,10 +90,11 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.use('/cards', cards);
-app.use('/inventory', inventory);
-app.use('/listings', listings);
-app.use('/users', users);
+app.use('/api/cards', cards);
+app.use('/api/inventory', inventory);
+app.use('/api/listings', listings);
+app.use('/api/users', users);
+app.use('/api/decks', decks);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => logger.info(`API on http://localhost:${port}`));

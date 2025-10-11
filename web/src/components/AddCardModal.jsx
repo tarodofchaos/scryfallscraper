@@ -110,7 +110,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
   }
 
   async function handleAddToInventory() {
-    if (!selectedPrinting) return;
+    if (!selectedPrinting || !userEmail) return;
 
     try {
       setLoading(true);
@@ -352,7 +352,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleAddToInventory}
-                  disabled={loading || !selectedPrinting}
+                  disabled={loading || !selectedPrinting || !userEmail}
                   className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -384,7 +384,7 @@ export default function AddCardModal({ card, userEmail, isOpen, onClose, onCardA
 
 AddCardModal.propTypes = {
   card: PropTypes.object,
-  userEmail: PropTypes.string.isRequired,
+  userEmail: PropTypes.string,
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onCardAdded: PropTypes.func.isRequired

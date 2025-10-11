@@ -55,3 +55,17 @@ model Listing {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
+
+model Deck {
+  id           String   @id @default(cuid())
+  name         String
+  source       String   @default("unknown")
+  url          String?
+  cards        String   // JSON string of cards array
+  totalCards   Int      @default(0)
+  validCards   Int      @default(0)
+  invalidCards Int      @default(0)
+  owner        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
