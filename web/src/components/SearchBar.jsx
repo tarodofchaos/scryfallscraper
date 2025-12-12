@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
+import SearchHelpModal from './SearchHelpModal.jsx';
 
 export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const inputRef = useRef();
   const timeoutRef = useRef();
 
@@ -93,6 +95,17 @@ export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
               aria-haspopup="listbox"
               role="combobox"
             />
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-mtg-white/50 hover:text-mtg-white transition-colors"
+              aria-label={t('searchHelp.showHelp')}
+              title={t('searchHelp.showHelp')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
           </div>
           
           {showDropdown && (
@@ -130,6 +143,8 @@ export default function SearchBar({ value, onChange, onSubmit, placeholder }) {
           {t('search.button')}
         </button>
       </form>
+      
+      <SearchHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }

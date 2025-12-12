@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SearchBar from '../components/SearchBar.jsx';
+import AdvancedSearch from '../components/AdvancedSearch.jsx';
 import CardGrid from '../components/CardGrid.jsx';
 import AddCardModal from '../components/AddCardModal.jsx';
 import { Cards } from '../lib/api.js';
@@ -8,6 +9,7 @@ import PropTypes from 'prop-types';
 
 export default function Search({ userEmail }) {
   const { t } = useTranslation();
+  const [searchMode, setSearchMode] = useState('basic'); // 'basic' or 'advanced'
   const [q, setQ] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -82,8 +84,13 @@ export default function Search({ userEmail }) {
   }, [placeholderIndex, q]);
 
   async function run() {
+    if (!q.trim()) return;
     setLoading(true);
     try { setResults(await Cards.search(q)); } finally { setLoading(false); }
+  }
+
+  function handleAdvancedQueryChange(query) {
+    setQ(query);
   }
 
   function handleAddToInventory(card) {
@@ -98,7 +105,38 @@ export default function Search({ userEmail }) {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <SearchBar value={q} onChange={setQ} onSubmit={run} placeholder={placeholder} />
+      {/* Mode Toggle */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 p-1">
+          <button
+            onClick={() => setSearchMode('basic')}
+            className={`px-6 py-2 rounded-md font-medium transition-all duration-300 ${
+              searchMode === 'basic'
+                ? 'bg-gradient-to-r from-mtg-blue to-blue-600 text-white shadow-lg'
+                : 'text-mtg-white/80 hover:text-mtg-white hover:bg-white/10'
+            }`}
+          >
+            {t('search.mode.basic')}
+          </button>
+          <button
+            onClick={() => setSearchMode('advanced')}
+            className={`px-6 py-2 rounded-md font-medium transition-all duration-300 ${
+              searchMode === 'advanced'
+                ? 'bg-gradient-to-r from-mtg-blue to-blue-600 text-white shadow-lg'
+                : 'text-mtg-white/80 hover:text-mtg-white hover:bg-white/10'
+            }`}
+          >
+            {t('search.mode.advanced')}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Interface */}
+      {searchMode === 'basic' ? (
+        <SearchBar value={q} onChange={setQ} onSubmit={run} placeholder={placeholder} />
+      ) : (
+        <AdvancedSearch onSearch={run} onQueryChange={handleAdvancedQueryChange} />
+      )}
       
       {loading ? (
         <div className="text-center py-16">
