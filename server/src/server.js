@@ -20,9 +20,20 @@ app.use(express.json());
 app.use(pinoHttp({ logger }));
 
 // SQLite autocomplete DB
-const cardDb = new sqlite3.Database('./prisma/AllPrintings.sqlite', sqlite3.OPEN_READONLY);
+let cardDb = null;
+try {
+	cardDb = new sqlite3.Database('./prisma/AllPrintings.sqlite', sqlite3.OPEN_READONLY, (err) => {
+		if (err) {
+			logger.warn('Could not open SQLite DB for autocomplete. Feature will be disabled.');
+			cardDb = null;
+		}
+	});
+} catch (err) {
+	logger.warn('Failed to initialize SQLite DB');
+}
 
 app.get('/api/card-names', (req, res) => {
+	if (!cardDb) return res.json([]);
 	const q = (req.query.q || '').trim();
 	if (!q || q.length < 2) return res.json([]);
 	// Query for card names matching input
@@ -73,7 +84,7 @@ app.get('/auth/google/callback', passport.authenticate('google', {
 	failureRedirect: '/login',
 	session: true
 }), (req, res) => {
-	  res.redirect('http://localhost:5173/'); // Redirect to frontend after login
+	  res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173/'); // Redirect to frontend after login
 });
 
 app.get('/api/me', (req, res) => {
